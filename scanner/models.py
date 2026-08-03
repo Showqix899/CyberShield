@@ -57,6 +57,16 @@ class Scan(models.Model):
         max_length=50,
         blank=True
     )
+    
+    ai_recommendation = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    ai_generated_at = models.DateTimeField(
+        blank=True,
+        null=True,
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 

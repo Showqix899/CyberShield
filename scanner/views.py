@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
+from .services.ai_recomendation import AIRecommendationService
+from .services.prompt_builder import PromptBuilder
 
 from .forms import ScanForm
 from .services.engine import ScanEngine
@@ -10,6 +12,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import HttpResponse
 from .services.pdf_report import PDFReport
+from django.utils import timezone
 
 
 
@@ -165,3 +168,47 @@ def delete_scan(request, scan_id):
             "scan": scan,
         },
     )
+    
+@login_required
+def generate_ai_recommendation(request, scan_id):
+    scan = get_object_or_404(
+        Scan,
+        id=scan_id,
+        user=request.user,
+    )
+    
+    if scan.ai_recommendation and scan.ai_generated_at:
+        time_since_last_generation = timezone.now() - scan.ai_generated_at
+        if time_since_last_generation.total_seconds() < 3600:
+            return render(
+                request,
+                "scanner/ai_recommendation.html",
+                {
+                    "scan": scan,
+                    "recommendation": scan.ai_recommendation,
+                    "message": "AI recommendation was generated recently. Please wait before generating again.",
+                },
+            )
+            
+            
+    else:
+        
+        prompt = PromptBuilder.build(scan)
+        recommendation = AIRecommendationService().generate(prompt)
+        scan.ai_recommendation = recommendation
+        scan.ai_generated_at = timezone.now()
+        scan.save()
+
+        return render(
+            request,
+            "scanner/ai_recommendation.html",
+            {
+                "scan": scan,
+                "recommendation": recommendation,
+                "message": "AI recommendation generated successfully.",
+            },
+        )
+        
+        
+
+    

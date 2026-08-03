@@ -110,7 +110,7 @@ class ScanEngine:
             scan,
             headers=header_result.get("headers", {})
         )
-
+        
         return {
             "success": True,
             "scan": scan,

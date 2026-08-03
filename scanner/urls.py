@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import new_scan, scan_history,scan_detail,download_report,delete_scan
+from .views import new_scan, scan_history,scan_detail,download_report,delete_scan,generate_ai_recommendation
 
 urlpatterns = [
     path("new/", new_scan, name="new_scan"),
@@ -15,5 +15,10 @@ urlpatterns = [
     delete_scan,
     name="delete_scan",
     ),
+    path(
+    "<int:scan_id>/ai-recommendation/",
+    generate_ai_recommendation,
+    name="generate_ai_recommendation",
+    ),  
 
 ]
