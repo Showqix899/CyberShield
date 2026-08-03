@@ -26,11 +26,11 @@ SECRET_KEY = 'django-insecure-lc^n258gc3jing+v*w%yxc$pn6@0pos^#@vkz$rz+30+eqr8-w
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = config(
-    "ALLOWED_HOSTS",
-    default="",
-).split(",")
-
+ALLOWED_HOSTS = [
+    "cybershield-isry.onrender.com",
+    "localhost",
+    "127.0.0.1",
+]
 
 # Application definition
 
