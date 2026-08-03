@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>CyberShield</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --neon-green: #00ff9d;
+        --neon-cyan: #00e5ff;
+        --neon-pink: #ff2079;
+        --glass-bg: rgba(15, 25, 25, 0.45);
+        --glass-border: rgba(0, 255, 157, 0.25);
+        --bg-dark: #060a0a;
+
+        /* Bootstrap variable overrides — this is what actually controls
+           card/table/alert/form-control text color, not plain inheritance */
+        --bs-body-color: #d7fff0;
+        --bs-body-color-rgb: 215, 255, 240;
+        --bs-emphasis-color: #eafff5;
+        --bs-secondary-color: rgba(215, 255, 240, 0.65);
+        --bs-tertiary-color: rgba(215, 255, 240, 0.45);
+        --bs-heading-color: #eafff5;
+        --bs-link-color: #00e5ff;
+        --bs-link-color-rgb: 0, 229, 255;
+        --bs-link-hover-color: #00ff9d;
+
+        --bs-card-color: #d7fff0;
+        --bs-card-cap-color: #eafff5;
+        --bs-card-bg: transparent;
+        --bs-card-border-color: rgba(0, 255, 157, 0.25);
+
+        --bs-table-color: #d7fff0;
+        --bs-table-bg: transparent;
+        --bs-table-border-color: rgba(0, 255, 157, 0.15);
+        --bs-table-striped-color: #d7fff0;
+        --bs-table-striped-bg: rgba(0, 255, 157, 0.04);
+        --bs-table-hover-color: #eafff5;
+        --bs-table-hover-bg: rgba(0, 255, 157, 0.06);
+
+        --bs-form-control-color: #eafff5;
+        --bs-form-select-color: #eafff5;
+
+        --bs-alert-bg: transparent;
+        --bs-alert-border-color: transparent;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+
+    body {
+        background-color: var(--bg-dark);
+        background-image:
+            linear-gradient(rgba(0, 255, 157, 0.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 157, 0.06) 1px, transparent 1px),
+            radial-gradient(circle at 20% 20%, rgba(0, 229, 255, 0.12), transparent 40%),
+            radial-gradient(circle at 80% 70%, rgba(0, 255, 157, 0.10), transparent 45%);
+        background-size: 40px 40px, 40px 40px, cover, cover;
+        color: #d7fff0;
+        font-family: 'Share Tech Mono', monospace;
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(
+            0deg, rgba(0, 255, 157, 0.03) 0px, rgba(0, 255, 157, 0.03) 1px,
+            transparent 2px, transparent 4px
+        );
+        z-index: 1000;
+    }
+
+    h1, h2, h3, h4, h5, h6, .navbar-brand {
+        font-family: 'Orbitron', sans-serif;
+        letter-spacing: 1px;
+    }
+
+    /* Zero-specificity fallback for plain tags only.
+       :where() has NO specificity, so any themed class (.ip-value, .port-cell,
+       .risk-badge, etc.) will always win over this automatically — no !important war. */
+    :where(p, span, div, td, th, li, label, small, dt, dd, legend) {
+        color: #d7fff0;
+    }
+    :where(h1, h2, h3, h4, h5, h6, strong, b, .card-title) {
+        color: #eafff5;
+    }
+
+    .navbar {
+        background: var(--glass-bg) !important;
+        backdrop-filter: blur(16px) saturate(140%);
+        -webkit-backdrop-filter: blur(16px) saturate(140%);
+        border-bottom: 1px solid var(--glass-border);
+        box-shadow: 0 4px 30px rgba(0, 255, 157, 0.08);
+        padding-top: 0.85rem;
+        padding-bottom: 0.85rem;
+    }
+
+    .navbar-brand {
+        color: var(--neon-green) !important;
+        font-weight: 900;
+        font-size: 1.5rem;
+        text-shadow: 0 0 8px rgba(0, 255, 157, 0.6), 0 0 18px rgba(0, 255, 157, 0.3);
+        position: relative;
+    }
+    .navbar-brand::before { content: "> "; color: var(--neon-cyan); }
+
+    .btn {
+        font-family: 'Share Tech Mono', monospace;
+        border-radius: 6px;
+        border: 1px solid var(--glass-border);
+        background: rgba(0, 255, 157, 0.04);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: #d7fff0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.85rem;
+        padding: 0.5rem 1.1rem;
+        transition: all 0.25s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .btn:hover { transform: translateY(-1px); color: #04140f; }
+
+    .btn-success { border-color: rgba(0, 255, 157, 0.5); color: var(--neon-green); }
+    .btn-success:hover { background: var(--neon-green); box-shadow: 0 0 20px rgba(0, 255, 157, 0.6); color: #04140f; }
+
+    .btn-info { border-color: rgba(0, 229, 255, 0.5); color: var(--neon-cyan); }
+    .btn-info:hover { background: var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 229, 255, 0.6); color: #04140f; }
+
+    .btn-secondary { border-color: rgba(215, 255, 240, 0.3); color: #d7fff0; }
+    .btn-secondary:hover { background: rgba(215, 255, 240, 0.85); box-shadow: 0 0 16px rgba(215, 255, 240, 0.4); color: #04140f; }
+
+    .btn-danger { border-color: rgba(255, 32, 121, 0.5); color: var(--neon-pink); }
+    .btn-danger:hover { background: var(--neon-pink); box-shadow: 0 0 20px rgba(255, 32, 121, 0.6); color: #1a0410; }
+
+    .btn-primary { border-color: rgba(0, 229, 255, 0.5); color: var(--neon-cyan); }
+    .btn-primary:hover { background: var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 229, 255, 0.6); color: #04140f; }
+
+    .btn-warning { border-color: rgba(255, 200, 0, 0.5); color: #ffd166; }
+    .btn-warning:hover { background: #ffd166; box-shadow: 0 0 20px rgba(255, 209, 102, 0.6); color: #211500; }
+
+    .navbar .btn { margin-left: 0.4rem; }
+    .container.mt-5 { position: relative; z-index: 2; }
+
+    .glass-panel, .card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px) saturate(140%);
+        -webkit-backdrop-filter: blur(16px) saturate(140%);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .table { background-color: transparent; }
+
+    a { color: var(--neon-cyan); }
+    a:hover { color: var(--neon-green); }
+
+    /* Form controls: Bootstrap doesn't fully rely on vars for background,
+       so set these explicitly (fine to do — no themed class competes here) */
+    .form-control, .form-select, input, textarea, select {
+        background-color: rgba(0, 0, 0, 0.35);
+        color: #eafff5;
+        border-color: var(--glass-border);
+    }
+    .form-control:focus, .form-select:focus {
+        background-color: rgba(0, 0, 0, 0.5);
+        color: #eafff5;
+        border-color: var(--neon-green);
+        box-shadow: 0 0 0 3px rgba(0, 255, 157, 0.15);
+    }
+    input::placeholder, textarea::placeholder {
+        color: rgba(215, 255, 240, 0.4);
+    }
+
+    /* Badges sit on solid neon backgrounds (bg-success/bg-danger/etc.) so
+       keep their text dark for contrast — scoped to .badge only, nothing else */
+    .badge { color: #04140f; }
+
+    pre, code { color: #9df7c9; }
+
+    /* Plain Bootstrap alerts (if any page still uses alert-success/danger/warning
+       directly instead of the custom .cyber-alert classes) */
+    .alert-danger  { background: rgba(255, 32, 121, 0.1)  !important; border-color: rgba(255, 32, 121, 0.4)  !important; color: #ffb3d1 !important; }
+    .alert-warning { background: rgba(255, 209, 102, 0.08) !important; border-color: rgba(255, 209, 102, 0.4) !important; color: #ffe0a3 !important; }
+    .alert-success { background: rgba(0, 255, 157, 0.06)  !important; border-color: rgba(0, 255, 157, 0.4)  !important; color: #9df7c9 !important; }
+
+    ::selection { background: rgba(0, 255, 157, 0.35); color: #04140f; }
+</style>
+
+</head>
+
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark">
+
+<div class="container">
+
+<a class="navbar-brand" href="/">CyberShield</a>
+
+<div>
+
+{% if user.is_authenticated %}
+
+<a class="btn btn-success" href="/dashboard/">Dashboard</a>
+<a href="{% url 'new_scan' %}" class="btn btn-info">New Scan</a>
+<a href="{% url 'scan_history' %}" class="btn btn-secondary">
+    Scan History
+</a>
+<form action="{% url 'logout' %}" method="post" style="display:inline;">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">
+        Logout
+    </button>
+</form>
+
+{% else %}
+
+<a class="btn btn-primary" href="/login/">Login</a>
+
+<a class="btn btn-warning" href="/accounts/register/">Register</a>
+
+{% endif %}
+
+</div>
+
+</div>
+
+</nav>
+
+<div class="container mt-5">
+
+{% block content %}
+
+{% endblock %}
+
+</div>
+
+</body>
+</html>

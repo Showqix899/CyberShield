@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="auth-wrap">
+
+    <div class="terminal-tag mb-3">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+        <span class="terminal-path">root@cybershield:~$ useradd --new</span>
+    </div>
+
+    <div class="glass-panel auth-card">
+
+        <div class="auth-card-header">
+            <h3 class="section-title"><span class="pulse-dot"></span> Create Account</h3>
+            <p class="auth-subtext">Register for access to the scanner console.</p>
+        </div>
+
+        <div class="auth-card-body">
+
+            <form method="post" class="cyber-form">
+
+                {% csrf_token %}
+
+                {{ form.as_p }}
+
+                <button class="btn btn-success glow-btn w-100 mt-2">
+                    [ Register ]
+                </button>
+
+            </form>
+
+            <div class="auth-footer">
+                Already have an account? <a href="/login/">Login here</a>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<style>
+    .terminal-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0,0,0,0.35);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 0.75rem;
+    }
+
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+
+    .terminal-path {
+        margin-left: 6px;
+        color: var(--neon-green);
+        opacity: 0.85;
+    }
+
+    .pulse-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--neon-green);
+        box-shadow: 0 0 8px var(--neon-green);
+        animation: pulseDot 1.6s ease-in-out infinite;
+        display: inline-block;
+    }
+
+    @keyframes pulseDot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    .auth-wrap {
+        max-width: 480px;
+        margin: 2rem auto 0;
+    }
+
+    .auth-card {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .auth-card-header {
+        padding: 1.8rem 2rem 1.2rem;
+        border-bottom: 1px solid var(--glass-border);
+        background: rgba(0, 255, 157, 0.04);
+    }
+
+    .section-title {
+        font-family: 'Orbitron', sans-serif;
+        color: #eafff5;
+        text-shadow: 0 0 8px rgba(0,255,157,0.4);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 0.4rem;
+        font-size: 1.3rem;
+    }
+
+    .auth-subtext {
+        font-size: 0.82rem;
+        color: rgba(215, 255, 240, 0.55);
+        margin-bottom: 0;
+    }
+
+    .auth-card-body {
+        padding: 1.8rem 2rem 2rem;
+    }
+
+    /* ===== Form styling (works with {{ form.as_p }}) ===== */
+    .cyber-form p { margin-bottom: 1.1rem; }
+
+    .cyber-form label {
+        display: block;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--neon-green);
+        margin-bottom: 0.35rem;
+        opacity: 0.9;
+    }
+
+    .cyber-form label::before { content: "> "; color: var(--neon-cyan); }
+
+    .cyber-form input,
+    .cyber-form select,
+    .cyber-form textarea {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.35) !important;
+        border: 1px solid var(--glass-border);
+        border-radius: 6px;
+        color: #eafff5 !important;
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 0.95rem;
+        padding: 0.6rem 0.85rem;
+        transition: all 0.2s ease;
+    }
+
+    .cyber-form input:focus,
+    .cyber-form select:focus,
+    .cyber-form textarea:focus {
+        outline: none;
+        border-color: var(--neon-green);
+        box-shadow: 0 0 0 3px rgba(0, 255, 157, 0.15), 0 0 15px rgba(0, 255, 157, 0.2);
+        background: rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .cyber-form input::placeholder,
+    .cyber-form textarea::placeholder {
+        color: rgba(215, 255, 240, 0.35);
+    }
+
+    .cyber-form .helptext {
+        display: block;
+        font-size: 0.73rem;
+        color: rgba(215, 255, 240, 0.5);
+        margin-top: 0.3rem;
+    }
+
+    .cyber-form ul.errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0.35rem 0 0;
+        color: var(--neon-pink);
+        font-size: 0.78rem;
+    }
+
+    .glow-btn {
+        font-size: 0.95rem;
+        padding: 0.65rem 1.5rem;
+    }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.3rem;
+        font-size: 0.85rem;
+        color: rgba(215, 255, 240, 0.6);
+    }
+
+    .auth-footer a {
+        color: var(--neon-cyan) !important;
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    .auth-footer a:hover {
+        color: var(--neon-green) !important;
+        text-shadow: 0 0 8px rgba(0, 255, 157, 0.4);
+    }
+
+    @media (max-width: 480px) {
+        .auth-card-header,
+        .auth-card-body {
+            padding-left: 1.3rem;
+            padding-right: 1.3rem;
+        }
+    }
+</style>
+
+{% endblock %}

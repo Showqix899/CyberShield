@@ -1,0 +1,499 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="terminal-tag mb-3">
+    <span class="dot dot-red"></span>
+    <span class="dot dot-yellow"></span>
+    <span class="dot dot-green"></span>
+    <span class="terminal-path">root@cybershield:~$ ./dashboard --live</span>
+</div>
+
+<h2 class="section-title"><span class="pulse-dot"></span> Dashboard</h2>
+
+<!-- ===== Stat cards ===== -->
+<div class="stat-grid mb-4">
+
+    <div class="stat-card">
+        <div class="stat-icon icon-cyan">◉</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ total_scans }}</div>
+            <div class="stat-label">Total Scans</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon icon-green">▤</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ total_ports }}</div>
+            <div class="stat-label">Ports Found</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon icon-pink">⚠</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ total_vulnerabilities }}</div>
+            <div class="stat-label">Vulnerabilities</div>
+        </div>
+    </div>
+
+    <div class="stat-card stat-card-alert">
+        <div class="stat-icon icon-red">⛔</div>
+        <div class="stat-info">
+            <div class="stat-value">{{ high_risk }}</div>
+            <div class="stat-label">High Risk Scans</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===== Charts row ===== -->
+<div class="chart-grid mb-4">
+
+    <div class="glass-panel chart-card">
+        <h4 class="card-title-cyber">Vulnerability Severity</h4>
+        {% if severity %}
+        <div class="chart-wrap">
+            <canvas id="severityPieChart"></canvas>
+        </div>
+        {% else %}
+        <div class="empty-chart">No vulnerability data yet.</div>
+        {% endif %}
+    </div>
+
+    <div class="glass-panel chart-card">
+        <h4 class="card-title-cyber">Scan Overview</h4>
+        <div class="chart-wrap">
+            <canvas id="overviewBarChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===== Recent scans + vulnerabilities ===== -->
+<div class="table-grid">
+
+    <div class="glass-panel table-card">
+        <h4 class="card-title-cyber">Recent Scans</h4>
+
+        <div class="table-wrap">
+            <table class="table cyber-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Target</th>
+                        <th>Status</th>
+                        <th>Risk</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for scan in recent_scans %}
+                    <tr>
+                        <td>
+                            <a class="target-link" href="{% url 'scan_detail' scan.id %}">{{ scan.target }}</a>
+                        </td>
+                        <td><span class="status-pill status-{{ scan.status }}">{{ scan.get_status_display }}</span></td>
+                        <td><span class="risk-badge-sm">{{ scan.risk_score }}</span></td>
+                        <td class="date-cell">{{ scan.created_at|date:"M d, H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center empty-row">No scans yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <a href="{% url 'scan_history' %}" class="view-all-link">View all scans →</a>
+    </div>
+
+    <div class="glass-panel table-card">
+        <h4 class="card-title-cyber">Recent Vulnerabilities</h4>
+
+        <div class="table-wrap">
+            <table class="table cyber-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Title</th>
+                        <th>Target</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in recent_vulnerabilities %}
+                    <tr>
+                        <td>
+                            {% if v.severity == "High" %}
+                            <span class="status-badge-danger">{{ v.severity }}</span>
+                            {% elif v.severity == "Medium" %}
+                            <span class="status-badge-warning">{{ v.severity }}</span>
+                            {% else %}
+                            <span class="status-badge-success">{{ v.severity }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ v.title }}</td>
+                        <td class="date-cell">{{ v.scan.target }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="text-center empty-row">No vulnerabilities found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+{{ severity|json_script:"severity-data" }}
+<script>
+    var totalScans = {{ total_scans|default:0 }};
+    var totalPorts = {{ total_ports|default:0 }};
+    var totalVulns = {{ total_vulnerabilities|default:0 }};
+    var highRisk = {{ high_risk|default:0 }};
+</script>
+
+<style>
+    .terminal-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0,0,0,0.35);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 0.75rem;
+    }
+
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+
+    .terminal-path { margin-left: 6px; color: var(--neon-green); opacity: 0.85; }
+
+    .section-title {
+        font-family: 'Orbitron', sans-serif;
+        color: #eafff5;
+        text-shadow: 0 0 8px rgba(0,255,157,0.4);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1.4rem;
+    }
+
+    .pulse-dot {
+        width: 9px; height: 9px; border-radius: 50%;
+        background: var(--neon-green);
+        box-shadow: 0 0 8px var(--neon-green);
+        animation: pulseDot 1.6s ease-in-out infinite;
+        display: inline-block;
+    }
+
+    @keyframes pulseDot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* ===== Stat cards ===== */
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+    }
+
+    .stat-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px) saturate(140%);
+        -webkit-backdrop-filter: blur(16px) saturate(140%);
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        padding: 1.2rem 1.3rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0, 255, 157, 0.1);
+    }
+
+    .stat-card-alert {
+        border-color: rgba(255, 32, 121, 0.35);
+    }
+
+    .stat-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+
+    .icon-cyan { background: rgba(0, 229, 255, 0.1); color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 229, 255, 0.15); }
+    .icon-green { background: rgba(0, 255, 157, 0.1); color: var(--neon-green); box-shadow: 0 0 15px rgba(0, 255, 157, 0.15); }
+    .icon-pink { background: rgba(255, 32, 121, 0.1); color: var(--neon-pink); box-shadow: 0 0 15px rgba(255, 32, 121, 0.15); }
+    .icon-red { background: rgba(255, 60, 60, 0.12); color: #ff5c5c; box-shadow: 0 0 15px rgba(255, 60, 60, 0.2); }
+
+    .stat-value {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #eafff5;
+        line-height: 1.1;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: rgba(215, 255, 240, 0.55);
+        margin-top: 2px;
+    }
+
+    /* ===== Charts ===== */
+    .chart-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.3fr;
+        gap: 1rem;
+    }
+
+    .chart-card {
+        padding: 1.5rem 1.6rem;
+    }
+
+    .card-title-cyber {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.95rem;
+        color: var(--neon-green);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 1.1rem;
+        opacity: 0.9;
+    }
+
+    .chart-wrap {
+        position: relative;
+        height: 260px;
+    }
+
+    .empty-chart {
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(215, 255, 240, 0.4);
+        font-size: 0.85rem;
+        font-style: italic;
+    }
+
+    /* ===== Tables ===== */
+    .table-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 1rem;
+    }
+
+    .table-card {
+        padding: 1.5rem 1.6rem;
+    }
+
+    .table-wrap {
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: #0a1512;
+    }
+
+    .cyber-table thead th {
+        background: rgba(0, 255, 157, 0.08) !important;
+        color: var(--neon-green) !important;
+        text-transform: uppercase;
+        font-size: 0.72rem;
+        letter-spacing: 1px;
+        border-bottom: 1px solid var(--glass-border);
+        border-top: none;
+        padding: 0.65rem 0.9rem;
+    }
+
+    .cyber-table tbody tr td {
+        background-color: #0a1512 !important;
+        border-color: rgba(0, 255, 157, 0.1) !important;
+        padding: 0.65rem 0.9rem;
+        font-size: 0.85rem;
+        vertical-align: middle;
+    }
+
+    .cyber-table tbody tr:nth-of-type(even) td { background-color: #0d1a16 !important; }
+    .cyber-table tbody tr:hover td { background-color: rgba(0, 255, 157, 0.08) !important; }
+
+    .target-link { color: var(--neon-cyan) !important; font-weight: bold; text-decoration: none; }
+    .target-link:hover { color: var(--neon-green) !important; text-shadow: 0 0 8px rgba(0, 255, 157, 0.5); }
+
+    .date-cell { color: rgba(215, 255, 240, 0.55) !important; font-size: 0.8rem; }
+
+    .risk-badge-sm {
+        display: inline-block;
+        background: rgba(0, 255, 157, 0.1);
+        border: 1px solid rgba(0, 255, 157, 0.5);
+        color: var(--neon-green);
+        padding: 2px 9px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.78rem;
+    }
+
+    .status-pill {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        border: 1px solid var(--glass-border);
+        background: rgba(255,255,255,0.03);
+    }
+    .status-pill.status-completed { color: var(--neon-green); border-color: rgba(0, 255, 157, 0.5); background: rgba(0, 255, 157, 0.08); }
+    .status-pill.status-running,
+    .status-pill.status-pending { color: #ffd166; border-color: rgba(255, 209, 102, 0.5); background: rgba(255, 209, 102, 0.08); }
+    .status-pill.status-failed { color: var(--neon-pink); border-color: rgba(255, 32, 121, 0.5); background: rgba(255, 32, 121, 0.08); }
+
+    .status-badge-danger, .status-badge-warning, .status-badge-success {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        border: 1px solid;
+    }
+    .status-badge-danger { color: var(--neon-pink); border-color: rgba(255, 32, 121, 0.5); background: rgba(255, 32, 121, 0.1); }
+    .status-badge-warning { color: #ffd166; border-color: rgba(255, 209, 102, 0.5); background: rgba(255, 209, 102, 0.1); }
+    .status-badge-success { color: var(--neon-green); border-color: rgba(0, 255, 157, 0.5); background: rgba(0, 255, 157, 0.1); }
+
+    .empty-row { color: rgba(215, 255, 240, 0.5) !important; font-style: italic; padding: 1.2rem !important; }
+
+    .view-all-link {
+        display: inline-block;
+        margin-top: 1rem;
+        font-size: 0.82rem;
+        color: var(--neon-cyan) !important;
+        text-decoration: none;
+    }
+    .view-all-link:hover { color: var(--neon-green) !important; }
+
+    @media (max-width: 992px) {
+        .stat-grid { grid-template-columns: repeat(2, 1fr); }
+        .chart-grid { grid-template-columns: 1fr; }
+        .table-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 576px) {
+        .stat-grid { grid-template-columns: 1fr; }
+        .table-wrap { overflow-x: auto; }
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // Shared cyber color palette for charts
+    var colors = {
+        green: '#00ff9d',
+        cyan: '#00e5ff',
+        pink: '#ff2079',
+        yellow: '#ffd166',
+        text: '#d7fff0',
+        gridLine: 'rgba(0, 255, 157, 0.08)'
+    };
+
+    Chart.defaults.color = colors.text;
+    Chart.defaults.font.family = "'Share Tech Mono', monospace";
+
+    // ===== Severity Pie Chart =====
+    var severityEl = document.getElementById('severity-data');
+    if (severityEl) {
+        var severityData = JSON.parse(severityEl.textContent);
+
+        if (severityData.length > 0) {
+            var labels = severityData.map(function (d) { return d.severity; });
+            var counts = severityData.map(function (d) { return d.total; });
+
+            var colorMap = {
+                'High': colors.pink,
+                'Medium': colors.yellow,
+                'Low': colors.green,
+                'Critical': '#ff3c3c'
+            };
+            var bgColors = labels.map(function (l) { return colorMap[l] || colors.cyan; });
+
+            new Chart(document.getElementById('severityPieChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: bgColors,
+                        borderColor: 'rgba(6, 10, 10, 0.9)',
+                        borderWidth: 3,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 16, usePointStyle: true, pointStyle: 'circle' }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // ===== Overview Bar Chart =====
+    new Chart(document.getElementById('overviewBarChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Scans', 'Ports Found', 'Vulnerabilities', 'High Risk'],
+            datasets: [{
+                data: [totalScans, totalPorts, totalVulns, highRisk],
+                backgroundColor: [
+                    'rgba(0, 229, 255, 0.6)',
+                    'rgba(0, 255, 157, 0.6)',
+                    'rgba(255, 32, 121, 0.6)',
+                    'rgba(255, 92, 92, 0.6)'
+                ],
+                borderColor: [colors.cyan, colors.green, colors.pink, '#ff5c5c'],
+                borderWidth: 1.5,
+                borderRadius: 6,
+                barThickness: 42
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: colors.gridLine }, ticks: { color: colors.text } },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: colors.gridLine },
+                    ticks: { color: colors.text, precision: 0 }
+                }
+            }
+        }
+    });
+
+});
+</script>
+
+{% endblock %}

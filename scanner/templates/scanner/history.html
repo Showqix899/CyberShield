@@ -1,0 +1,447 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="terminal-tag mb-3">
+    <span class="dot dot-red"></span>
+    <span class="dot dot-yellow"></span>
+    <span class="dot dot-green"></span>
+    <span class="terminal-path">root@cybershield:~$ ls -la /scans {% if query %}| grep "{{ query }}"{% endif %}</span>
+</div>
+
+<h2 class="section-title"><span class="pulse-dot"></span> Scan History</h2>
+
+<form method="get" class="filter-bar mb-4">
+
+    <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input
+            type="text"
+            name="q"
+            class="search-input"
+            placeholder="Search by IP or domain e.g. google.com"
+            value="{{ query }}"
+            autocomplete="off"
+        >
+    </div>
+
+    <select name="status" class="filter-select">
+        <option value="">All Statuses</option>
+        {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+
+    <select name="sort" class="filter-select">
+        <option value="">Newest First</option>
+        <option value="risk_high" {% if selected_sort == "risk_high" %}selected{% endif %}>Risk: High → Low</option>
+        <option value="risk_low" {% if selected_sort == "risk_low" %}selected{% endif %}>Risk: Low → High</option>
+    </select>
+
+    <button type="submit" class="btn btn-info glow-btn filter-submit">Filter</button>
+
+    {% if query or selected_status or selected_sort %}
+    <a href="{% url 'scan_history' %}" class="btn btn-secondary glow-btn filter-clear">Clear</a>
+    {% endif %}
+
+</form>
+
+<div class="table-wrap">
+    <table class="table cyber-table mb-0">
+
+        <thead>
+            <tr>
+                <th>Target</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Risk</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for scan in scans %}
+            <tr>
+                <td>
+                    <a class="target-link" href="{% url 'scan_detail' scan.id %}">
+                        {{ scan.target }}
+                    </a>
+                    {% if scan.ip_address %}
+                    <div class="ip-subtext">{{ scan.ip_address }}</div>
+                    {% endif %}
+                </td>
+                <td>{{ scan.get_scan_type_display }}</td>
+                <td>
+                    <span class="status-pill status-{{ scan.status }}">{{ scan.get_status_display }}</span>
+                </td>
+                <td>
+                    <span class="risk-badge-sm">{{ scan.risk_score }}</span>
+                </td>
+                <td class="date-cell">{{ scan.created_at|date:"M d, Y H:i" }}</td>
+                <td>
+                    <a href="{% url 'delete_scan' scan.id %}" class='btn btn-outline btn-danger'>delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center empty-row">
+                    {% if query or selected_status %}
+                        No scans match your search/filter.
+                    {% else %}
+                        No scans found.
+                    {% endif %}
+                </td>
+            </tr>
+
+            
+            {% endfor %}
+        </tbody>
+
+    </table>
+</div>
+
+{% if scans.has_other_pages %}
+<nav class="cyber-pagination mt-4" aria-label="Scan history pages">
+    <ul class="pagination-list">
+
+        {% if scans.has_previous %}
+            <li>
+                <a class="page-link-cyber" href="?page={{ scans.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">‹ Prev</a>
+            </li>
+        {% else %}
+            <li><span class="page-link-cyber disabled">‹ Prev</span></li>
+        {% endif %}
+
+        {% for num in scans.paginator.page_range %}
+            {% if num == scans.number %}
+                <li><span class="page-link-cyber active">{{ num }}</span></li>
+            {% elif num > scans.number|add:"-3" and num < scans.number|add:"3" %}
+                <li><a class="page-link-cyber" href="?page={{ num }}{% if querystring %}&{{ querystring }}{% endif %}">{{ num }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if scans.has_next %}
+            <li>
+                <a class="page-link-cyber" href="?page={{ scans.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Next ›</a>
+            </li>
+        {% else %}
+            <li><span class="page-link-cyber disabled">Next ›</span></li>
+        {% endif %}
+
+    </ul>
+
+    <div class="pagination-info">
+        Page {{ scans.number }} of {{ scans.paginator.num_pages }} — {{ scans.paginator.count }} scan{{ scans.paginator.count|pluralize }} total
+    </div>
+</nav>
+{% endif %}
+
+<style>
+    .terminal-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0,0,0,0.35);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 0.75rem;
+        max-width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+
+    .terminal-path {
+        margin-left: 6px;
+        color: var(--neon-green);
+        opacity: 0.85;
+    }
+
+    .section-title {
+        font-family: 'Orbitron', sans-serif;
+        color: #eafff5;
+        text-shadow: 0 0 8px rgba(0,255,157,0.4);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1.2rem;
+    }
+
+    .pulse-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--neon-green);
+        box-shadow: 0 0 8px var(--neon-green);
+        animation: pulseDot 1.6s ease-in-out infinite;
+        display: inline-block;
+    }
+
+    @keyframes pulseDot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* ===== Filter bar ===== */
+    .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.7rem;
+        align-items: center;
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px) saturate(140%);
+        -webkit-backdrop-filter: blur(16px) saturate(140%);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 1rem 1.1rem;
+    }
+
+    .search-wrap {
+        position: relative;
+        flex: 1 1 260px;
+        min-width: 220px;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--neon-green);
+        opacity: 0.7;
+        font-size: 1rem;
+        pointer-events: none;
+    }
+
+    .search-input {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.35) !important;
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        color: #eafff5 !important;
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 0.9rem;
+        padding: 0.55rem 0.85rem 0.55rem 2.1rem;
+        transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--neon-green);
+        box-shadow: 0 0 0 3px rgba(0, 255, 157, 0.15), 0 0 15px rgba(0, 255, 157, 0.15);
+        background: rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .search-input::placeholder {
+        color: rgba(215, 255, 240, 0.4);
+    }
+
+    .filter-select {
+        background: rgba(0, 0, 0, 0.35) !important;
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        color: #eafff5 !important;
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 0.85rem;
+        padding: 0.55rem 0.7rem;
+        min-width: 170px;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--neon-cyan);
+        box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.15);
+    }
+
+    .filter-select option {
+        background: #0a1512;
+        color: #eafff5;
+    }
+
+    .filter-submit, .filter-clear {
+        white-space: nowrap;
+    }
+
+    /* ===== Table (opaque rows, no bootstrap striping vars) ===== */
+    .table-wrap {
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: #0a1512;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    .cyber-table { margin-bottom: 0; }
+
+    .cyber-table thead th {
+        background: rgba(0, 255, 157, 0.08) !important;
+        color: var(--neon-green) !important;
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        letter-spacing: 1px;
+        border-bottom: 1px solid var(--glass-border);
+        border-top: none;
+        padding: 0.75rem 1rem;
+    }
+
+    .cyber-table tbody tr td {
+        background-color: #0a1512 !important;
+        border-color: rgba(0, 255, 157, 0.1) !important;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        vertical-align: middle;
+    }
+
+    .cyber-table tbody tr:nth-of-type(even) td {
+        background-color: #0d1a16 !important;
+    }
+
+    .cyber-table tbody tr:hover td {
+        background-color: rgba(0, 255, 157, 0.09) !important;
+    }
+
+    .target-link {
+        color: var(--neon-cyan) !important;
+        font-weight: bold;
+        text-decoration: none;
+    }
+    .target-link::before { content: "→ "; opacity: 0.6; }
+    .target-link:hover {
+        color: var(--neon-green) !important;
+        text-shadow: 0 0 8px rgba(0, 255, 157, 0.5);
+    }
+
+    .ip-subtext {
+        font-size: 0.75rem;
+        color: rgba(215, 255, 240, 0.45);
+        margin-top: 2px;
+    }
+
+    .date-cell {
+        color: rgba(215, 255, 240, 0.6) !important;
+        font-size: 0.85rem;
+    }
+
+    .risk-badge-sm {
+        display: inline-block;
+        background: rgba(0, 255, 157, 0.1);
+        border: 1px solid rgba(0, 255, 157, 0.5);
+        color: var(--neon-green);
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.82rem;
+        box-shadow: 0 0 8px rgba(0, 255, 157, 0.12);
+    }
+
+    .status-pill {
+        display: inline-block;
+        padding: 3px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: 1px solid var(--glass-border);
+        background: rgba(255,255,255,0.03);
+    }
+
+    .status-pill.status-completed {
+        color: var(--neon-green);
+        border-color: rgba(0, 255, 157, 0.5);
+        background: rgba(0, 255, 157, 0.08);
+    }
+
+    .status-pill.status-running,
+    .status-pill.status-pending {
+        color: #ffd166;
+        border-color: rgba(255, 209, 102, 0.5);
+        background: rgba(255, 209, 102, 0.08);
+    }
+
+    .status-pill.status-failed {
+        color: var(--neon-pink);
+        border-color: rgba(255, 32, 121, 0.5);
+        background: rgba(255, 32, 121, 0.08);
+    }
+
+    .empty-row {
+        color: rgba(215, 255, 240, 0.5) !important;
+        font-style: italic;
+        padding: 1.4rem !important;
+    }
+
+    /* ===== Pagination ===== */
+    .cyber-pagination {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .pagination-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        list-style: none;
+        gap: 0.4rem;
+        padding: 0;
+        margin: 0;
+    }
+
+    .page-link-cyber {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 38px;
+        height: 38px;
+        padding: 0 10px;
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: #d7fff0 !important;
+        text-decoration: none;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }
+
+    a.page-link-cyber:hover {
+        border-color: var(--neon-green);
+        color: var(--neon-green) !important;
+        box-shadow: 0 0 12px rgba(0, 255, 157, 0.25);
+    }
+
+    .page-link-cyber.active {
+        background: var(--neon-green);
+        border-color: var(--neon-green);
+        color: #04140f !important;
+        font-weight: bold;
+        box-shadow: 0 0 14px rgba(0, 255, 157, 0.4);
+    }
+
+    .page-link-cyber.disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+
+    .pagination-info {
+        font-size: 0.75rem;
+        color: rgba(215, 255, 240, 0.5);
+        letter-spacing: 0.5px;
+    }
+
+    @media (max-width: 576px) {
+        .filter-bar { flex-direction: column; align-items: stretch; }
+        .filter-select { min-width: 0; width: 100%; }
+        .table-wrap { overflow-x: auto; }
+    }
+</style>
+
+{% endblock %}

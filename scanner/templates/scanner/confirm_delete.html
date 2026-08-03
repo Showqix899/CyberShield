@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="delete-overlay">
+
+    <div class="delete-modal">
+
+        <div class="delete-icon-wrap">
+            <span class="delete-icon">⚠</span>
+        </div>
+
+        <h3 class="delete-title">Delete Scan Record?</h3>
+
+        <p class="delete-subtext">
+            This action is permanent and cannot be undone. All associated port results and vulnerability data for this scan will also be removed.
+        </p>
+
+        <div class="scan-info-box">
+
+            <div class="info-row">
+                <span class="info-label">Target</span>
+                <span class="info-value">{{ scan.target }}</span>
+            </div>
+
+            {% if scan.ip_address %}
+            <div class="info-row">
+                <span class="info-label">IP Address</span>
+                <span class="info-value ip-value">{{ scan.ip_address }}</span>
+            </div>
+            {% endif %}
+
+            <div class="info-row">
+                <span class="info-label">Status</span>
+                <span class="info-value">
+                    <span class="status-pill status-{{ scan.status }}">{{ scan.get_status_display }}</span>
+                </span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Risk Score</span>
+                <span class="info-value">
+                    <span class="risk-badge-sm">{{ scan.risk_score }}</span>
+                </span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Created</span>
+                <span class="info-value date-value">{{ scan.created_at|date:"M d, Y H:i" }}</span>
+            </div>
+
+        </div>
+
+        <form method="post" class="delete-actions">
+            {% csrf_token %}
+
+            <a href="{% url 'scan_detail' scan.id %}" class="btn btn-secondary glow-btn cancel-btn">
+                Cancel
+            </a>
+
+            <button type="submit" class="btn btn-danger glow-btn delete-btn">
+                [ Delete Permanently ]
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+<style>
+    .delete-overlay {
+        min-height: 70vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+
+    .delete-modal {
+        width: 100%;
+        max-width: 460px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px) saturate(140%);
+        -webkit-backdrop-filter: blur(20px) saturate(140%);
+        border: 1px solid rgba(255, 32, 121, 0.35);
+        border-radius: 16px;
+        padding: 2.2rem 2rem 2rem;
+        box-shadow: 0 8px 50px rgba(0, 0, 0, 0.6), 0 0 60px rgba(255, 32, 121, 0.1);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .delete-modal::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 3px;
+        background: linear-gradient(90deg, transparent, var(--neon-pink), transparent);
+        animation: scanLine 2.5s ease-in-out infinite;
+    }
+
+    @keyframes scanLine {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 1; }
+    }
+
+    .delete-icon-wrap {
+        width: 62px;
+        height: 62px;
+        margin: 0 auto 1.1rem;
+        border-radius: 50%;
+        background: rgba(255, 32, 121, 0.1);
+        border: 1px solid rgba(255, 32, 121, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 25px rgba(255, 32, 121, 0.2);
+        animation: pulseWarn 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulseWarn {
+        0%, 100% { box-shadow: 0 0 15px rgba(255, 32, 121, 0.15); }
+        50% { box-shadow: 0 0 30px rgba(255, 32, 121, 0.35); }
+    }
+
+    .delete-icon {
+        font-size: 1.8rem;
+        color: var(--neon-pink);
+    }
+
+    .delete-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.35rem;
+        color: #eafff5;
+        text-shadow: 0 0 8px rgba(255, 32, 121, 0.3);
+        margin-bottom: 0.7rem;
+    }
+
+    .delete-subtext {
+        font-size: 0.85rem;
+        color: rgba(215, 255, 240, 0.6);
+        line-height: 1.5;
+        margin-bottom: 1.6rem;
+        padding: 0 0.5rem;
+    }
+
+    .scan-info-box {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        padding: 1rem 1.3rem;
+        margin-bottom: 1.8rem;
+        text-align: left;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(0, 255, 157, 0.07);
+        font-size: 0.88rem;
+    }
+
+    .info-row:last-child { border-bottom: none; }
+
+    .info-label {
+        color: var(--neon-green);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.72rem;
+        opacity: 0.85;
+    }
+
+    .info-label::before { content: "> "; color: var(--neon-cyan); }
+
+    .info-value {
+        color: #eafff5;
+        text-align: right;
+    }
+
+    .ip-value {
+        color: var(--neon-cyan);
+        text-shadow: 0 0 6px rgba(0, 229, 255, 0.4);
+        font-weight: bold;
+    }
+
+    .date-value {
+        color: rgba(215, 255, 240, 0.65);
+        font-size: 0.82rem;
+    }
+
+    .risk-badge-sm {
+        display: inline-block;
+        background: rgba(0, 255, 157, 0.1);
+        border: 1px solid rgba(0, 255, 157, 0.5);
+        color: var(--neon-green);
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.8rem;
+    }
+
+    .status-pill {
+        display: inline-block;
+        padding: 2px 11px;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        border: 1px solid var(--glass-border);
+        background: rgba(255,255,255,0.03);
+    }
+    .status-pill.status-completed { color: var(--neon-green); border-color: rgba(0, 255, 157, 0.5); background: rgba(0, 255, 157, 0.08); }
+    .status-pill.status-running,
+    .status-pill.status-pending { color: #ffd166; border-color: rgba(255, 209, 102, 0.5); background: rgba(255, 209, 102, 0.08); }
+    .status-pill.status-failed { color: var(--neon-pink); border-color: rgba(255, 32, 121, 0.5); background: rgba(255, 32, 121, 0.08); }
+
+    .delete-actions {
+        display: flex;
+        gap: 0.8rem;
+        justify-content: center;
+    }
+
+    .cancel-btn, .delete-btn {
+        flex: 1;
+        font-size: 0.85rem;
+    }
+
+    .delete-btn {
+        font-weight: bold;
+    }
+
+    @media (max-width: 480px) {
+        .delete-modal { padding: 1.8rem 1.4rem 1.6rem; }
+        .delete-actions { flex-direction: column; }
+    }
+</style>
+
+{% endblock %}

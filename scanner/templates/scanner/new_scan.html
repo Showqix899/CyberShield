@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="scan-glass mx-auto">
+
+    <div class="terminal-tag mb-3">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+        <span class="terminal-path">root@cybershield:~$ ./new_scan.sh</span>
+    </div>
+
+    <h2 class="section-title">New Scan</h2>
+
+    <form method="post" class="cyber-form" id="scanForm">
+
+        {% csrf_token %}
+
+        {{ form.as_p }}
+
+        <button class="btn btn-primary glow-btn mt-2" id="scanSubmitBtn">
+            [ Run Scan ]
+        </button>
+
+    </form>
+
+    {% if result %}
+
+    <hr class="cyber-divider">
+
+    <h3 class="section-title">
+        <span class="pulse-dot"></span> Result
+    </h3>
+
+    {% if result.success %}
+
+    <p class="result-ip"><strong>Target IP:</strong> <span class="ip-value">{{ result.ip }}</span></p>
+
+    <div class="table-wrap">
+        <table class="table cyber-table">
+
+            <thead>
+                <tr>
+                    <th>Port</th>
+                    <th>Service</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for port in result.ports %}
+                <tr>
+                    <td class="port-cell">{{ port.port }}</td>
+                    <td>{{ port.service }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="2" class="text-center empty-row">
+                        No open ports found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
+    {% else %}
+
+    <div class="cyber-alert">
+        <span class="alert-icon">⚠</span> {{ result.message }}
+    </div>
+
+    {% endif %}
+
+    {% endif %}
+
+</div>
+
+<!-- ===== Scanning overlay (outside scan-glass, fixed to viewport) ===== -->
+<div class="scan-overlay" id="scanOverlay">
+    <div class="scan-overlay-inner">
+
+        <div class="radar">
+            <div class="radar-sweep"></div>
+            <div class="radar-ring ring-1"></div>
+            <div class="radar-ring ring-2"></div>
+            <div class="radar-ring ring-3"></div>
+            <div class="radar-dot"></div>
+        </div>
+
+        <h3 class="scan-status-text" id="scanStatusText">Initializing scan...</h3>
+
+        <div class="scan-progress-track">
+            <div class="scan-progress-fill" id="scanProgressFill"></div>
+        </div>
+
+        <div class="scan-terminal" id="scanTerminal"></div>
+
+    </div>
+</div>
+
+<style>
+    .scan-glass {
+        max-width: 720px;
+        padding: 2.5rem;
+        background: var(--glass-bg);
+        backdrop-filter: blur(18px) saturate(140%);
+        -webkit-backdrop-filter: blur(18px) saturate(140%);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 60px rgba(0, 255, 157, 0.06), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .terminal-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0,0,0,0.35);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 0.75rem;
+    }
+
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+
+    .terminal-path {
+        margin-left: 6px;
+        color: var(--neon-green);
+        opacity: 0.85;
+    }
+
+    .section-title {
+        font-family: 'Orbitron', sans-serif;
+        color: #eafff5;
+        text-shadow: 0 0 8px rgba(0,255,157,0.4);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1.2rem;
+    }
+
+    /* ===== Form styling (works with {{ form.as_p }}) ===== */
+    .cyber-form p { margin-bottom: 1.1rem; }
+    .cyber-form label {
+        display: block;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--neon-green);
+        margin-bottom: 0.35rem;
+        opacity: 0.9;
+    }
+    .cyber-form label::before { content: "> "; color: var(--neon-cyan); }
+    .cyber-form input, .cyber-form select, .cyber-form textarea {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.35) !important;
+        border: 1px solid var(--glass-border);
+        border-radius: 6px;
+        color: #eafff5 !important;
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 0.95rem;
+        padding: 0.6rem 0.85rem;
+    }
+    .cyber-form input:focus, .cyber-form select:focus, .cyber-form textarea:focus {
+        outline: none;
+        border-color: var(--neon-green);
+        box-shadow: 0 0 0 3px rgba(0, 255, 157, 0.15), 0 0 15px rgba(0, 255, 157, 0.2);
+    }
+
+    /* ===== Overlay ===== */
+    .scan-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        background: rgba(3, 8, 8, 0.88);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+
+    .scan-overlay.active {
+        display: flex;
+        opacity: 1;
+    }
+
+    .scan-overlay-inner {
+        width: 90%;
+        max-width: 460px;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 2.5rem 2rem 2rem;
+        box-shadow: 0 8px 50px rgba(0,0,0,0.6), 0 0 80px rgba(0,255,157,0.08);
+        text-align: center;
+    }
+
+    .radar {
+        position: relative;
+        width: 130px;
+        height: 130px;
+        margin: 0 auto 1.5rem;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(0,255,157,0.08), transparent 70%);
+    }
+
+    .radar-ring {
+        position: absolute;
+        border: 1px solid rgba(0, 255, 157, 0.25);
+        border-radius: 50%;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    .ring-1 { width: 40%; height: 40%; }
+    .ring-2 { width: 70%; height: 70%; }
+    .ring-3 { width: 100%; height: 100%; }
+
+    .radar-sweep {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, rgba(0,255,157,0.65), transparent 35%);
+        animation: radarSpin 1.6s linear infinite;
+    }
+
+    @keyframes radarSpin { to { transform: rotate(360deg); } }
+
+    .radar-dot {
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 8px; height: 8px;
+        margin: -4px 0 0 -4px;
+        border-radius: 50%;
+        background: var(--neon-green);
+        box-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
+        animation: dotPulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes dotPulse {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 1; }
+    }
+
+    .scan-status-text {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.05rem;
+        color: #eafff5;
+        text-shadow: 0 0 8px rgba(0,255,157,0.4);
+        margin-bottom: 1.2rem;
+        min-height: 1.4em;
+    }
+
+    .scan-progress-track {
+        width: 100%;
+        height: 6px;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.06);
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--glass-border);
+    }
+
+    .scan-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--neon-cyan), var(--neon-green));
+        box-shadow: 0 0 10px rgba(0,255,157,0.6);
+        transition: width 0.4s ease;
+    }
+
+    .scan-terminal {
+        text-align: left;
+        background: rgba(0,0,0,0.4);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        padding: 0.8rem 1rem;
+        height: 140px;
+        overflow: hidden;
+        font-size: 0.78rem;
+        color: #9df7c9;
+        line-height: 1.6;
+    }
+
+    .scan-terminal .line {
+        opacity: 0;
+        animation: lineIn 0.3s ease forwards;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .scan-terminal .line::before {
+        content: "$ ";
+        color: var(--neon-green);
+    }
+
+    @keyframes lineIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pulse-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--neon-green);
+        box-shadow: 0 0 8px var(--neon-green);
+        animation: pulseDot 1.6s ease-in-out infinite;
+        display: inline-block;
+    }
+
+    @keyframes pulseDot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    .result-ip {
+        font-size: 0.95rem;
+        color: #a9ffe6;
+        margin-bottom: 1rem;
+    }
+
+    .ip-value {
+        color: var(--neon-cyan);
+        text-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+        font-weight: bold;
+    }
+
+    .table-wrap {
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.25);
+    }
+
+    .cyber-table { margin-bottom: 0; color: #d7fff0; }
+
+    .cyber-table thead th {
+        background: rgba(0, 255, 157, 0.08);
+        color: var(--neon-green);
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        letter-spacing: 1px;
+        border-bottom: 1px solid var(--glass-border);
+        border-top: none;
+        padding: 0.75rem 1rem;
+    }
+
+    .cyber-table tbody td {
+        border-color: rgba(0, 255, 157, 0.1);
+        padding: 0.7rem 1rem;
+        font-size: 0.9rem;
+        background: transparent;
+    }
+
+    .cyber-table tbody tr { transition: background 0.2s ease; }
+    .cyber-table tbody tr:hover { background: rgba(0, 255, 157, 0.06); }
+
+    .port-cell { color: var(--neon-cyan); font-weight: bold; }
+
+    .empty-row {
+        color: rgba(215, 255, 240, 0.5);
+        font-style: italic;
+        padding: 1.2rem !important;
+    }
+
+    .cyber-alert {
+        background: rgba(255, 32, 121, 0.08);
+        border: 1px solid rgba(255, 32, 121, 0.4);
+        border-radius: 8px;
+        color: #ffb3d1;
+        padding: 0.9rem 1.1rem;
+        font-size: 0.9rem;
+        box-shadow: 0 0 20px rgba(255, 32, 121, 0.1);
+    }
+
+    .alert-icon { color: var(--neon-pink); margin-right: 6px; }
+
+    @media (max-width: 576px) {
+        .scan-glass { padding: 1.5rem; }
+        .scan-overlay-inner { padding: 2rem 1.3rem 1.5rem; }
+    }
+</style>
+
+<script>
+(function () {
+    var form = document.getElementById('scanForm');
+    var overlay = document.getElementById('scanOverlay');
+    var statusText = document.getElementById('scanStatusText');
+    var progressFill = document.getElementById('scanProgressFill');
+    var terminal = document.getElementById('scanTerminal');
+    var submitBtn = document.getElementById('scanSubmitBtn');
+
+    if (!form) return;
+
+    var statusMessages = [
+        "Resolving target host...",
+        "Establishing connection...",
+        "Enumerating open ports...",
+        "Fingerprinting services...",
+        "Checking SSL/TLS configuration...",
+        "Cross-referencing CVE database...",
+        "Analyzing security headers...",
+        "Compiling risk assessment..."
+    ];
+
+    var terminalLines = [
+        "resolving hostname via DNS...",
+        "handshake established [200 OK]",
+        "scanning ports 1-1024...",
+        "found open port 443 (https)",
+        "found open port 80 (http)",
+        "grabbing service banners...",
+        "checking TLS certificate chain...",
+        "querying vulnerability database...",
+        "matched signature: none critical",
+        "calculating composite risk score...",
+        "finalizing report..."
+    ];
+
+    form.addEventListener('submit', function () {
+        if (!form.checkValidity()) return;
+
+        overlay.classList.add('active');
+        submitBtn.disabled = true;
+
+        var msgIndex = 0;
+        statusText.textContent = statusMessages[0];
+        var statusInterval = setInterval(function () {
+            msgIndex = (msgIndex + 1) % statusMessages.length;
+            statusText.textContent = statusMessages[msgIndex];
+        }, 1400);
+
+        var progress = 0;
+        var progressInterval = setInterval(function () {
+            progress += Math.random() * 6;
+            if (progress > 90) progress = 90;
+            progressFill.style.width = progress + '%';
+        }, 350);
+
+        var lineIndex = 0;
+        var terminalInterval = setInterval(function () {
+            if (lineIndex < terminalLines.length) {
+                var div = document.createElement('div');
+                div.className = 'line';
+                div.textContent = terminalLines[lineIndex];
+                terminal.appendChild(div);
+                terminal.scrollTop = terminal.scrollHeight;
+                lineIndex++;
+            } else {
+                lineIndex = 0;
+                terminal.innerHTML = '';
+            }
+        }, 700);
+    });
+})();
+</script>
+
+{% endblock %}
