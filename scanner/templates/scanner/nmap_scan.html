@@ -1,0 +1,647 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="scan-glass mx-auto">
+
+    <div class="terminal-tag mb-3">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+        <span class="terminal-path">root@cybershield:~$ nmap -sV [target]</span>
+    </div>
+
+    <h2 class="section-title"><span class="pulse-dot"></span> Nmap Scan</h2>
+
+    <form method="post" class="cyber-form" id="nmapForm">
+
+        {% csrf_token %}
+
+        <p>
+            <label for="target">Target</label>
+            <input
+                type="text"
+                name="target"
+                id="target"
+                class="form-control"
+                placeholder="e.g. scanme.nmap.org or 192.168.1.1"
+                required
+            >
+        </p>
+
+        <button type="submit" class="btn btn-primary glow-btn mt-2" id="nmapSubmitBtn">
+            [ Run Nmap Scan ]
+        </button>
+
+    </form>
+
+    {% if results %}
+
+    <hr class="cyber-divider">
+
+    <h3 class="section-title"><span class="pulse-dot"></span> Scan Results</h3>
+
+    {% if results.success %}
+
+    <div class="result-meta mb-3">
+        <div class="meta-row">
+            <span class="meta-label">Target</span>
+            <span class="meta-value ip-value">{{ results.target }}</span>
+        </div>
+        {% if results.host_status %}
+        <div class="meta-row">
+            <span class="meta-label">Host Status</span>
+            <span class="meta-value">
+                <span class="status-badge-success">{{ results.host_status }}</span>
+            </span>
+        </div>
+        {% endif %}
+        {% if results.scan_time %}
+        <div class="meta-row">
+            <span class="meta-label">Scan Duration</span>
+            <span class="meta-value">{{ results.scan_time }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="table-wrap">
+        <div class="table-scroll">
+            <table class="table cyber-table mb-0">
+
+                <thead>
+                    <tr>
+                        <th>Port</th>
+                        <th>Protocol</th>
+                        <th>State</th>
+                        <th>Service</th>
+                        <th>Version</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for port in results.ports %}
+                    <tr>
+                        <td class="port-cell">{{ port.port }}</td>
+                        <td>{{ port.protocol|default:"tcp" }}</td>
+                        <td>
+                            {% if port.state == "open" %}
+                            <span class="status-badge-danger">{{ port.state }}</span>
+                            {% elif port.state == "filtered" %}
+                            <span class="status-badge-warning">{{ port.state }}</span>
+                            {% else %}
+                            <span class="status-badge-success">{{ port.state }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ port.service|default:"unknown" }}</td>
+                        <td class="wrap-cell">{{ port.version|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center empty-row">
+                            No open ports found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+
+    {% else %}
+
+    <div class="cyber-alert">
+        <span class="alert-icon">⚠</span> {{ results.message|default:"Scan failed. Please check the target and try again." }}
+    </div>
+
+    {% endif %}
+
+    {% endif %}
+
+</div>
+
+<!-- ===== Scanning overlay ===== -->
+<div class="scan-overlay" id="scanOverlay">
+    <div class="scan-overlay-inner">
+
+        <div class="radar">
+            <div class="radar-sweep"></div>
+            <div class="radar-ring ring-1"></div>
+            <div class="radar-ring ring-2"></div>
+            <div class="radar-ring ring-3"></div>
+            <div class="radar-dot"></div>
+        </div>
+
+        <h3 class="scan-status-text" id="scanStatusText">Initializing Nmap...</h3>
+
+        <div class="scan-progress-track">
+            <div class="scan-progress-fill" id="scanProgressFill"></div>
+        </div>
+
+        <div class="scan-terminal" id="scanTerminal"></div>
+
+        <p class="scan-wait-note">Port scans can take anywhere from a few seconds to a couple minutes depending on target size.</p>
+
+    </div>
+</div>
+
+<style>
+    .scan-glass {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 2.5rem;
+        background: var(--glass-bg);
+        backdrop-filter: blur(18px) saturate(140%);
+        -webkit-backdrop-filter: blur(18px) saturate(140%);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 60px rgba(0, 255, 157, 0.06), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .terminal-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0,0,0,0.35);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 0.75rem;
+        max-width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+
+    .terminal-path {
+        margin-left: 6px;
+        color: var(--neon-green);
+        opacity: 0.85;
+    }
+
+    .section-title {
+        font-family: 'Orbitron', sans-serif;
+        color: #eafff5;
+        text-shadow: 0 0 8px rgba(0,255,157,0.4);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1.2rem;
+        font-size: clamp(1.05rem, 2.5vw, 1.4rem);
+    }
+
+    .pulse-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--neon-green);
+        box-shadow: 0 0 8px var(--neon-green);
+        animation: pulseDot 1.6s ease-in-out infinite;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+
+    @keyframes pulseDot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* ===== Form ===== */
+    .cyber-form p { margin-bottom: 1.1rem; }
+
+    .cyber-form label {
+        display: block;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--neon-green);
+        margin-bottom: 0.35rem;
+        opacity: 0.9;
+    }
+    .cyber-form label::before { content: "> "; color: var(--neon-cyan); }
+
+    .cyber-form input,
+    .cyber-form select,
+    .cyber-form textarea {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.35) !important;
+        border: 1px solid var(--glass-border);
+        border-radius: 6px;
+        color: #eafff5 !important;
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 0.95rem;
+        padding: 0.6rem 0.85rem;
+        transition: all 0.2s ease;
+    }
+
+    .cyber-form input:focus,
+    .cyber-form select:focus,
+    .cyber-form textarea:focus {
+        outline: none;
+        border-color: var(--neon-green);
+        box-shadow: 0 0 0 3px rgba(0, 255, 157, 0.15), 0 0 15px rgba(0, 255, 157, 0.2);
+        background: rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .cyber-form input::placeholder {
+        color: rgba(215, 255, 240, 0.35);
+    }
+
+    .glow-btn { width: 100%; }
+
+    @media (min-width: 480px) {
+        .glow-btn { width: auto; }
+    }
+
+    /* ===== Result meta ===== */
+    .result-meta {
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        padding: 1rem 1.3rem;
+    }
+
+    .meta-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.45rem 0;
+        border-bottom: 1px solid rgba(0, 255, 157, 0.07);
+        font-size: 0.88rem;
+        gap: 1rem;
+    }
+
+    .meta-row:last-child { border-bottom: none; }
+
+    .meta-label {
+        color: var(--neon-green);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.72rem;
+        opacity: 0.85;
+        flex-shrink: 0;
+    }
+
+    .meta-value {
+        color: #eafff5;
+        text-align: right;
+        word-break: break-word;
+    }
+
+    .ip-value {
+        color: var(--neon-cyan);
+        text-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+        font-weight: bold;
+    }
+
+    /* ===== Table ===== */
+    .table-wrap {
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.25);
+    }
+
+    .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .cyber-table {
+        margin-bottom: 0;
+        color: #d7fff0;
+        min-width: 560px;
+    }
+
+    .cyber-table thead th {
+        background: rgba(0, 255, 157, 0.08);
+        color: var(--neon-green);
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        letter-spacing: 1px;
+        border-bottom: 1px solid var(--glass-border);
+        border-top: none;
+        padding: 0.75rem 1rem;
+        white-space: nowrap;
+    }
+
+    .cyber-table tbody td {
+        border-color: rgba(0, 255, 157, 0.1);
+        padding: 0.7rem 1rem;
+        font-size: 0.88rem;
+        background: transparent;
+        vertical-align: middle;
+    }
+
+    .wrap-cell {
+        white-space: normal;
+        max-width: 200px;
+        word-break: break-word;
+    }
+
+    .cyber-table tbody tr { transition: background 0.2s ease; }
+    .cyber-table tbody tr:hover { background: rgba(0, 255, 157, 0.06); }
+
+    .port-cell { color: var(--neon-cyan); font-weight: bold; }
+
+    .empty-row {
+        color: rgba(215, 255, 240, 0.5);
+        font-style: italic;
+        padding: 1.2rem !important;
+    }
+
+    /* ===== Badges ===== */
+    .status-badge-danger,
+    .status-badge-warning,
+    .status-badge-success {
+        display: inline-block;
+        padding: 3px 11px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: 1px solid;
+        white-space: nowrap;
+    }
+
+    .status-badge-danger {
+        color: var(--neon-pink);
+        border-color: rgba(255, 32, 121, 0.5);
+        background: rgba(255, 32, 121, 0.1);
+        box-shadow: 0 0 10px rgba(255, 32, 121, 0.15);
+    }
+
+    .status-badge-warning {
+        color: #ffd166;
+        border-color: rgba(255, 209, 102, 0.5);
+        background: rgba(255, 209, 102, 0.1);
+        box-shadow: 0 0 10px rgba(255, 209, 102, 0.15);
+    }
+
+    .status-badge-success {
+        color: var(--neon-green);
+        border-color: rgba(0, 255, 157, 0.5);
+        background: rgba(0, 255, 157, 0.1);
+        box-shadow: 0 0 10px rgba(0, 255, 157, 0.15);
+    }
+
+    /* ===== Alert ===== */
+    .cyber-alert {
+        background: rgba(255, 32, 121, 0.08);
+        border: 1px solid rgba(255, 32, 121, 0.4);
+        border-radius: 8px;
+        color: #ffb3d1;
+        padding: 0.9rem 1.1rem;
+        font-size: 0.9rem;
+        box-shadow: 0 0 20px rgba(255, 32, 121, 0.1);
+    }
+
+    .alert-icon { color: var(--neon-pink); margin-right: 6px; }
+
+    .cyber-divider {
+        border: none;
+        border-top: 1px solid var(--glass-border);
+        margin: 2rem 0;
+        box-shadow: 0 1px 8px rgba(0, 255, 157, 0.15);
+    }
+
+    /* ===== Scanning overlay ===== */
+    .scan-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        background: rgba(3, 8, 8, 0.88);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        padding: 1.5rem;
+    }
+
+    .scan-overlay.active { display: flex; opacity: 1; }
+
+    .scan-overlay-inner {
+        width: 100%;
+        max-width: 460px;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 2.5rem 2rem 2rem;
+        box-shadow: 0 8px 50px rgba(0,0,0,0.6), 0 0 80px rgba(0,255,157,0.08);
+        text-align: center;
+    }
+
+    .radar {
+        position: relative;
+        width: 130px;
+        height: 130px;
+        margin: 0 auto 1.5rem;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(0,255,157,0.08), transparent 70%);
+    }
+
+    .radar-ring {
+        position: absolute;
+        border: 1px solid rgba(0, 255, 157, 0.25);
+        border-radius: 50%;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    .ring-1 { width: 40%; height: 40%; }
+    .ring-2 { width: 70%; height: 70%; }
+    .ring-3 { width: 100%; height: 100%; }
+
+    .radar-sweep {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        border-radius: 50%;
+        background: conic-gradient(from 0deg, rgba(0,255,157,0.65), transparent 35%);
+        animation: radarSpin 1.6s linear infinite;
+    }
+
+    @keyframes radarSpin { to { transform: rotate(360deg); } }
+
+    .radar-dot {
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 8px; height: 8px;
+        margin: -4px 0 0 -4px;
+        border-radius: 50%;
+        background: var(--neon-green);
+        box-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
+        animation: dotPulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes dotPulse {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 1; }
+    }
+
+    .scan-status-text {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.05rem;
+        color: #eafff5;
+        text-shadow: 0 0 8px rgba(0,255,157,0.4);
+        margin-bottom: 1.2rem;
+        min-height: 1.4em;
+    }
+
+    .scan-progress-track {
+        width: 100%;
+        height: 6px;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.06);
+        overflow: hidden;
+        margin-bottom: 1.4rem;
+        border: 1px solid var(--glass-border);
+    }
+
+    .scan-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--neon-cyan), var(--neon-green));
+        box-shadow: 0 0 10px rgba(0,255,157,0.6);
+        transition: width 0.4s ease;
+    }
+
+    .scan-terminal {
+        text-align: left;
+        background: rgba(0,0,0,0.4);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        padding: 0.8rem 1rem;
+        height: 130px;
+        overflow: hidden;
+        font-size: 0.76rem;
+        color: #9df7c9;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+
+    .scan-terminal .line {
+        opacity: 0;
+        animation: lineIn 0.3s ease forwards;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .scan-terminal .line::before { content: "$ "; color: var(--neon-green); }
+
+    @keyframes lineIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .scan-wait-note {
+        font-size: 0.75rem;
+        color: rgba(215, 255, 240, 0.45);
+        margin-bottom: 0;
+    }
+
+    /* =========================================================
+       RESPONSIVE BREAKPOINTS
+    ========================================================= */
+
+    @media (max-width: 992px) {
+        .scan-glass { padding: 2rem 1.8rem; }
+    }
+
+    @media (max-width: 768px) {
+        .scan-glass { padding: 1.6rem; margin: 0 0.5rem; }
+        .meta-row { flex-direction: column; align-items: flex-start; gap: 3px; }
+        .meta-value { text-align: left; }
+        .cyber-table { min-width: 480px; }
+    }
+
+    @media (max-width: 480px) {
+        .scan-glass { padding: 1.3rem 1.1rem; }
+        .terminal-tag { font-size: 0.68rem; padding: 5px 10px; }
+        .cyber-table { min-width: 420px; }
+        .wrap-cell { max-width: 140px; }
+        .scan-overlay-inner { padding: 2rem 1.3rem 1.5rem; }
+        .radar { width: 100px; height: 100px; }
+    }
+</style>
+
+<script>
+(function () {
+    var form = document.getElementById('nmapForm');
+    var overlay = document.getElementById('scanOverlay');
+    var statusText = document.getElementById('scanStatusText');
+    var progressFill = document.getElementById('scanProgressFill');
+    var terminal = document.getElementById('scanTerminal');
+    var submitBtn = document.getElementById('nmapSubmitBtn');
+
+    if (!form) return;
+
+    var statusMessages = [
+        "Initializing Nmap...",
+        "Resolving target host...",
+        "Sending SYN probes...",
+        "Scanning port range...",
+        "Detecting service versions...",
+        "Fingerprinting OS (if enabled)...",
+        "Compiling results..."
+    ];
+
+    var terminalLines = [
+        "starting nmap scan engine...",
+        "resolving hostname via DNS...",
+        "sending TCP SYN packets...",
+        "port 22/tcp ... open",
+        "port 80/tcp ... open",
+        "port 443/tcp ... open",
+        "probing service banners...",
+        "matching version signatures...",
+        "compiling port table..."
+    ];
+
+    form.addEventListener('submit', function () {
+        if (!form.checkValidity()) return;
+
+        overlay.classList.add('active');
+        submitBtn.disabled = true;
+
+        var msgIndex = 0;
+        statusText.textContent = statusMessages[0];
+        setInterval(function () {
+            msgIndex = (msgIndex + 1) % statusMessages.length;
+            statusText.textContent = statusMessages[msgIndex];
+        }, 1600);
+
+        var progress = 0;
+        setInterval(function () {
+            var increment = progress < 60 ? Math.random() * 6 : Math.random() * 2;
+            progress = Math.min(progress + increment, 92);
+            progressFill.style.width = progress + '%';
+        }, 400);
+
+        var lineIndex = 0;
+        setInterval(function () {
+            if (lineIndex < terminalLines.length) {
+                var div = document.createElement('div');
+                div.className = 'line';
+                div.textContent = terminalLines[lineIndex];
+                terminal.appendChild(div);
+                terminal.scrollTop = terminal.scrollHeight;
+                lineIndex++;
+            } else {
+                lineIndex = 0;
+                terminal.innerHTML = '';
+            }
+        }, 750);
+    });
+})();
+</script>
+
+{% endblock %}

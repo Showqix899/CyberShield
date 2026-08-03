@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
 from .services.ai_recomendation import AIRecommendationService
 from .services.prompt_builder import PromptBuilder
+from .services.nmap_scanner import NmapScanner
 
 from .forms import ScanForm
 from .services.engine import ScanEngine
@@ -211,4 +212,31 @@ def generate_ai_recommendation(request, scan_id):
         
         
 
-    
+from django.contrib import messages
+
+@login_required
+def nmap_scan(request):
+
+    results = None
+    target = ""
+
+    if request.method == "POST":
+
+        target = request.POST.get("target")
+
+        try:
+            scanner = NmapScanner()
+            results = scanner.scan(target)
+
+        except Exception as e:
+            print("NMAP ERROR:", e)
+            messages.error(request, str(e))
+
+    return render(
+        request,
+        "scanner/nmap_scan.html",
+        {
+            "results": results,
+            "target": target,
+        },
+    )
